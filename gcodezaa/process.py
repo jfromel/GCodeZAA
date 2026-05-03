@@ -18,12 +18,27 @@ def parse_klipper_args(gcode: str) -> dict:
     return dict(map(lambda x: list(map(str.strip, x.split("=", 1))), gcode.split(" ")))
 
 
+DEFAULT_SETTINGS = {
+    "outer_walls": True,
+    "inner_walls": True,
+    "top_surface": True,
+    "ironing": False,
+    "bottom_surface": False,
+    "support_interface": False,
+    "min_z": 0.02,
+    "bottom_min_z": 0.02,
+    "support_interface_min_z": 0.1,
+}
+
+
 def process_gcode(
     gcode: list[str],
     model_dir: str,
     plate_object: tuple[str, float, float] | None = None,
+    settings: dict | None = None,
 ) -> list[str]:
     ctx = ProcessorContext(gcode, model_dir)
+    ctx.settings = {**DEFAULT_SETTINGS, **(settings or {})}
     if plate_object is not None:
         ctx.active_object = load_object(
             ctx, plate_object[0], plate_object[1], plate_object[2]
@@ -139,27 +154,48 @@ def process_line(ctx: ProcessorContext):
     elif ctx.line.startswith("EXCLUDE_OBJECT_END"):
         ctx.active_object = None
 
+    is_bottom = ctx.line_type == ctx.syntax.line_type_bottom_surface
+    is_support_iface = (
+        ctx.line_type == ctx.syntax.line_type_support_interface
+        or ctx.line_type == ctx.syntax.line_type_support_interface_alt
+    )
+    line_type_enabled = (
+        (ctx.line_type == ctx.syntax.line_type_ironing and ctx.settings.get("ironing"))
+        or (ctx.line_type == ctx.syntax.line_type_top_surface and ctx.settings.get("top_surface"))
+        or (ctx.line_type == ctx.syntax.line_type_outer_wall and ctx.settings.get("outer_walls"))
+        or (ctx.line_type == ctx.syntax.line_type_inner_wall and ctx.settings.get("inner_walls"))
+        or (is_bottom and ctx.settings.get("bottom_surface"))
+        or (is_support_iface and ctx.settings.get("support_interface"))
+    )
+
     if (
         len(ctx.extrusion) == 1
         and not ctx.wipe
         and ctx.active_object is not None
-        and (
-            ctx.line_type == ctx.syntax.line_type_ironing
-            or ctx.line_type == ctx.syntax.line_type_top_surface
-            or ctx.line_type == ctx.syntax.line_type_outer_wall
-            or ctx.line_type == ctx.syntax.line_type_inner_wall
-        )
+        and line_type_enabled
         and not ctx.relative_positioning
         and ctx.extrusion[0].length() != 0
         and ctx.extrusion[0].e is not None
         and (ctx.extrusion[0].x is not None or ctx.extrusion[0].y is not None)
     ):
+        if is_bottom:
+            surface_type = "bottom"
+            min_z = ctx.settings.get("bottom_min_z", 0.02)
+        elif is_support_iface:
+            surface_type = "support_interface"
+            min_z = ctx.settings.get("support_interface_min_z", 0.1)
+        else:
+            surface_type = "top"
+            min_z = ctx.settings.get("min_z", 0.02)
+
         contour = ctx.extrusion[0].contour_z(
             ctx.active_object,
             z=ctx.z,
             height=float(ctx.config_block["layer_height"]),
             ironing_line=ctx.line_type == ctx.syntax.line_type_ironing,
             outer_line=ctx.line_type == ctx.syntax.line_type_outer_wall,
+            surface_type=surface_type,
+            min_z=min_z,
             demo_split=None,
         )
         if any(map(lambda extrusion: extrusion.z != ctx.z, contour)):

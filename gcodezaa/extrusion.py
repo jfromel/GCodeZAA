@@ -84,6 +84,8 @@ class Extrusion:
         height: float,
         ironing_line: bool,
         outer_line: bool,
+        surface_type: str = "top",
+        min_z: float = 0.02,
         resolution=0.1,
         demo_split: float | None = None,
     ) -> list["Extrusion"]:
@@ -130,6 +132,9 @@ class Extrusion:
 
         extrusion_rate = self.e / self.length()
 
+        max_up = min_z
+        min_down = -(height - min_z)
+
         segments = []
         p = self.p
         for i in range(num_segments + 1):
@@ -137,17 +142,36 @@ class Extrusion:
             hit_down = max(0, abs(hits_down["t_hit"][i].item()))
             normal_up = hits_up["primitive_normals"][i]
             normal_down = hits_down["primitive_normals"][i]
-            use_up = (
-                (normal_up[2].item() > 0 and normal_up[2].item() <= 0)
-                or normal_down[2].item() <= 0
-                or hit_up <= hit_down
-            )
 
-            if use_up and hit_up <= height / 2 + 1e-6:
-                d = min(height / 2, hit_up)
-            elif normal_down[2].item() > 0 and hit_down <= height / 2 + 1e-6:
-                d = max(-height / 2, -hit_down)
-            else:
+            d = 0
+            if surface_type == "top":
+                use_up = (
+                    normal_down[2].item() <= 0
+                    or hit_up <= hit_down
+                )
+                if use_up and hit_up <= max_up + 1e-6:
+                    d = min(max_up, hit_up)
+                elif normal_down[2].item() > 0 and hit_down <= -min_down + 1e-6:
+                    d = max(min_down, -hit_down)
+
+            elif surface_type == "bottom":
+                if hit_down <= -min_down + 1e-6 and normal_down[2].item() < -0.1:
+                    d = max(min_down, -hit_down)
+                elif hit_down <= -min_down + 1e-6:
+                    d = max(min_down, -hit_down)
+
+            elif surface_type == "support_interface":
+                if hit_up <= max_up + 1e-6 and normal_up[2].item() < -0.1:
+                    d = min(max_up, hit_up)
+                elif hit_up <= max_up + 1e-6:
+                    d = min(max_up, hit_up)
+
+            if d < min_down:
+                d = min_down
+            elif d > max_up:
+                d = max_up
+
+            if outer_line and d > 0:
                 d = 0
 
             do_split = demo_split is not None and rays_up[i][1] < demo_split

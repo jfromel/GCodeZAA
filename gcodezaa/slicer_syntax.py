@@ -28,6 +28,9 @@ class SlicerSyntax:
     line_type_bridge: str = "Bridge"
     line_type_ironing: str = "Ironing"
     line_type_overhang: str = "Overhang wall"
+    line_type_bottom_surface: str = "Bottom surface"
+    line_type_support_interface: str = "Support interface"
+    line_type_support_interface_alt: str = "Support interface (top)"
 
     layer_change: str = ";LAYER_CHANGE"
     z: str = ";Z:"

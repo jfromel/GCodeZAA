@@ -28,6 +28,8 @@ class ProcessorContext:
     width: float = 0
     wipe: bool = False
 
+    settings: dict = {}
+
     relative_extrusion: bool = False
     relative_positioning: bool = False
 

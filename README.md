@@ -8,15 +8,15 @@ Thanks to the [coverage by CNC Kitchen](https://www.youtube.com/watch?v=0Hi9lBjZ
 - @adob has implemented [ZAA directly into BambuStudio](https://github.com/adob/BambuStudio-ZAA/releases)
 - [As it turns out I'm not the first one to come up with this idea](https://arxiv.org/abs/1609.03032)
 
-This is a post-processing script to enable smooth(-ish) non-planar top surfaces through
-a process I've come to call "Z Anti-Aliasing", to differentiate it from true non-planar
-top surfaces. Maybe "Surface Layer Contouring" would be a better name.
+This is a post-processing app based on the script by Theaninova to enable smooth(-ish) non-planar top and bottom surfaces through a process called "Z Anti-Aliasing" or Z countouring, to differentiate it from true non-planar
+top surfaces. 
 
-This script is not super user friendly, but should be fine as a proof-of-concept to hopefully
+This app is not super user friendly, but should be fine as a proof-of-concept to hopefully
 get this implemented in slicers directly.
 
 ## Features
 
+- Works with any slicer
 - Close to zero extra printing time cost
 - Works on any model
 - Works on any surface (not just the top most like many other projects)
@@ -26,7 +26,6 @@ get this implemented in slicers directly.
 
 ## Limitations
 
-- Only works in OrcaSlicer
 - Non-planar extrusion flow is not great and needs further testing
 - Overlapping/double extrusion (this might be solveable by using ironing lines)
 - Random artifacts in walls (this might be solveable by using ironing lines)

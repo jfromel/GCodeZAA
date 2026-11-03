@@ -1,0 +1,198 @@
+
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font-sans); }
+  .panel { padding: 1.5rem 0; }
+  .section { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-lg); padding: 1.25rem; margin-bottom: 1rem; }
+  .section-title { font-size: 13px; font-weight: 500; color: var(--color-text-secondary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem; }
+  .field { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 0.875rem; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label { font-size: 14px; color: var(--color-text-primary); flex: 1; }
+  .field-hint { font-size: 12px; color: var(--color-text-secondary); margin-top: 2px; }
+  .field-right { display: flex; align-items: center; gap: 8px; }
+  .field-value { font-size: 13px; font-weight: 500; color: var(--color-text-primary); min-width: 40px; text-align: right; }
+  input[type=range] { width: 120px; }
+  input[type=text], input[type=number] { width: 120px; font-size: 13px; padding: 6px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-secondary); color: var(--color-text-primary); }
+  .file-row { display: flex; gap: 8px; align-items: center; }
+  .file-input { flex: 1; font-size: 13px; padding: 6px 10px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: var(--color-background-secondary); color: var(--color-text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .btn { font-size: 13px; padding: 6px 14px; border: 0.5px solid var(--color-border-secondary); border-radius: var(--border-radius-md); background: transparent; color: var(--color-text-primary); cursor: pointer; }
+  .btn:hover { background: var(--color-background-secondary); }
+  .btn-run { width: 100%; padding: 10px; font-size: 14px; font-weight: 500; background: var(--color-background-info); color: var(--color-text-info); border: 0.5px solid var(--color-border-info); border-radius: var(--border-radius-md); cursor: pointer; margin-top: 1rem; }
+  .btn-run:hover { opacity: 0.85; }
+  .toggle { position: relative; width: 36px; height: 20px; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track { position: absolute; inset: 0; background: var(--color-border-secondary); border-radius: 20px; cursor: pointer; transition: background 0.2s; }
+  .toggle input:checked + .toggle-track { background: #1D9E75; }
+  .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; background: white; border-radius: 50%; transition: transform 0.2s; pointer-events: none; }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(16px); }
+  .cmd-box { background: var(--color-background-secondary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 0.875rem 1rem; font-family: var(--font-mono); font-size: 12px; color: var(--color-text-secondary); word-break: break-all; line-height: 1.6; margin-top: 1rem; }
+  .cmd-label { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px; font-family: var(--font-sans); }
+  .copy-btn { float: right; font-size: 11px; padding: 2px 8px; margin-top: -2px; }
+</style>
+
+<div class="panel">
+
+  <div class="section">
+    <div class="section-title">Files</div>
+    <div class="field" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+      <div class="field-label">GCode file</div>
+      <div class="file-row" style="width:100%">
+        <div class="file-input" id="gcode-display">No file selected</div>
+        <button class="btn" onclick="pickFile('gcode')">Browse</button>
+      </div>
+    </div>
+    <div class="field" style="flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 0.75rem;">
+      <div class="field-label">Models folder (STL directory)</div>
+      <div class="file-row" style="width:100%">
+        <div class="file-input" id="models-display">/Users/johnfromel/Desktop/modelsSTL</div>
+        <button class="btn" onclick="pickFile('models')">Browse</button>
+      </div>
+    </div>
+    <div class="field" style="flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 0.75rem;">
+      <div class="field-label">Output file <span style="font-size:12px; color: var(--color-text-secondary)">(leave blank to overwrite input)</span></div>
+      <div class="file-row" style="width:100%">
+        <input type="text" id="output-path" placeholder="Same as input" style="flex:1; width:auto;">
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Z Contouring</div>
+
+    <div class="field">
+      <div>
+        <div class="field-label">Resolution</div>
+        <div class="field-hint">Sampling distance along extrusion (mm). Lower = smoother, slower.</div>
+      </div>
+      <div class="field-right">
+        <input type="range" min="0.05" max="1.0" step="0.05" value="0.1" id="resolution-slider" oninput="update()">
+        <span class="field-value" id="resolution-val">0.10</span>
+        <span style="font-size:12px; color:var(--color-text-secondary)">mm</span>
+      </div>
+    </div>
+
+    <div class="field">
+      <div>
+        <div class="field-label">Contour outer walls</div>
+        <div class="field-hint">Apply ZAA to outer wall extrusions.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="outer-walls" checked onchange="update()">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+
+    <div class="field">
+      <div>
+        <div class="field-label">Contour inner walls</div>
+        <div class="field-hint">Apply ZAA to inner wall extrusions.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="inner-walls" checked onchange="update()">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+
+    <div class="field">
+      <div>
+        <div class="field-label">Contour top surface</div>
+        <div class="field-hint">Apply ZAA to top surface extrusions.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="top-surface" checked onchange="update()">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+
+    <div class="field">
+      <div>
+        <div class="field-label">Contour ironing lines</div>
+        <div class="field-hint">Apply ZAA to ironing passes.</div>
+      </div>
+      <label class="toggle">
+        <input type="checkbox" id="ironing" onchange="update()">
+        <div class="toggle-track"></div>
+        <div class="toggle-thumb"></div>
+      </label>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-title">Object placement (optional)</div>
+    <div class="field">
+      <div>
+        <div class="field-label">Object name</div>
+        <div class="field-hint">Override auto-detection (Bambu Studio mode).</div>
+      </div>
+      <input type="text" id="obj-name" placeholder="e.g. enclosureSM.stl" oninput="update()">
+    </div>
+    <div class="field">
+      <div>
+        <div class="field-label">Position X, Y</div>
+        <div class="field-hint">Object center position on plate (mm).</div>
+      </div>
+      <div class="field-right">
+        <input type="number" id="pos-x" placeholder="X" style="width:60px" oninput="update()">
+        <input type="number" id="pos-y" placeholder="Y" style="width:60px" oninput="update()">
+      </div>
+    </div>
+  </div>
+
+  <div class="cmd-box">
+    <div class="cmd-label">Generated command <button class="btn copy-btn" onclick="copyCmd()">Copy</button></div>
+    <div id="cmd-output">Select a gcode file to generate command</div>
+  </div>
+
+</div>
+
+<script>
+  var gcodePath = '';
+  var modelsPath = '/Users/johnfromel/Desktop/modelsSTL';
+
+  function pickFile(type) {
+    if (type === 'gcode') {
+      var path = prompt('Enter full path to gcode file:', '/Users/johnfromel/Desktop/modelsGcode/enclosureSM.gcode');
+      if (path) { gcodePath = path; document.getElementById('gcode-display').textContent = path.split('/').pop(); update(); }
+    } else {
+      var path = prompt('Enter full path to models folder:', modelsPath);
+      if (path) { modelsPath = path; document.getElementById('models-display').textContent = path; update(); }
+    }
+  }
+
+  function update() {
+    var res = parseFloat(document.getElementById('resolution-slider').value).toFixed(2);
+    document.getElementById('resolution-val').textContent = res;
+
+    if (!gcodePath) { document.getElementById('cmd-output').textContent = 'Select a gcode file to generate command'; return; }
+
+    var python = '/Users/johnfromel/Library/Caches/pypoetry/virtualenvs/gcodezaa-urSMRtnC-py3.11/bin/python';
+    var output = document.getElementById('output-path').value || gcodePath;
+    var name = document.getElementById('obj-name').value;
+    var px = document.getElementById('pos-x').value;
+    var py = document.getElementById('pos-y').value;
+
+    var cmd = 'cd /Users/johnfromel/Desktop/GCodeZAA && ' + python + ' -m gcodezaa "' + gcodePath + '" -m "' + modelsPath + '" -o "' + output + '"';
+
+    if (name) cmd += ' -n "' + name + '"';
+    if (px && py) cmd += ' -p ' + px + ',' + py;
+
+    document.getElementById('cmd-output').textContent = cmd;
+  }
+
+  function copyCmd() {
+    var cmd = document.getElementById('cmd-output').textContent;
+    navigator.clipboard.writeText(cmd).catch(function() {
+      var ta = document.createElement('textarea');
+      ta.value = cmd;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    });
+  }
+
+  update();
+</script>
